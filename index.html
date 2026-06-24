@@ -27,6 +27,15 @@
   .ftag{ font-size:11px; font-weight:bold; color:var(--green); text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px; }
   .finsight p{ font-size:14px; line-height:1.7; color:#222; }
   .finsight p b{ color:var(--navy); }
+  .atbl{ background:#fff; border:1px solid var(--line); border-left:5px solid var(--green); border-radius:8px; padding:14px 18px 16px; margin-bottom:18px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .atbl h3{ font-size:13px; color:var(--navy); margin-bottom:8px; }
+  .atbl table{ border-collapse:collapse; width:100%; max-width:660px; }
+  .atbl th{ text-align:right; font-size:11px; color:#fff; background:var(--green); padding:6px 12px; }
+  .atbl th:first-child{ text-align:left; }
+  .atbl td{ text-align:right; font-size:12.5px; padding:6px 12px; border-bottom:1px solid var(--line); }
+  .atbl td:first-child{ text-align:left; font-weight:bold; color:var(--navy); }
+  .atbl tr.tot td{ font-weight:bold; border-top:2px solid var(--green); border-bottom:none; }
+  .atbl .note{ font-size:10.5px; color:var(--grey); line-height:1.4; margin-top:9px; max-width:660px; }
   .foot{ margin-top:30px; font-size:10px; color:var(--grey); border-top:1px solid var(--line); padding-top:10px; }
 </style>
 </head>
@@ -36,6 +45,7 @@
 
   <h2 class="key">Key insights</h2>
   <div id="features"></div>
+  <div id="acttable"></div>
 
   <h2>Channel mix &amp; take rates</h2>
   <div class="grid" id="sec1"></div>
@@ -113,11 +123,11 @@ function renderMix(country,cap){ const c=DATA.channel_country[country]; if(!c||!
 // F4 · active merchants vs sign-ups + GTM spend
 (()=>{ const m=DATA.merchants; const markets=['Nigeria','South Africa','Ghana','Kenya']; const n=m.dates.length;
  const active=z(n); markets.forEach(c=>S(m.country[c].active).forEach((v,i)=>active[i]+=v));
- const base=active[0]; let run=0; const cum=z(n);
- for(let i=0;i<n;i++){ markets.forEach(c=>{run+=S(m.country[c].golives)[i];}); cum[i]=base+run; }
+ let run=0; const cum=z(n);
+ for(let i=0;i<n;i++){ markets.forEach(c=>{run+=S(m.country[c].golives)[i];}); cum[i]=run; }
  const mkt=z(n),com=z(n); markets.forEach(c=>{S(m.country[c].mktg).forEach((v,i)=>mkt[i]+=v);S(m.country[c].comm).forEach((v,i)=>com[i]+=v);});
- feat('GTM spend on commissions and marketing has risen sharply over the past ~12 months, but it has converted into <b>sign-ups, not active merchants</b>: the active base has barely moved (~13k → ~27k) while cumulative onboarding has ballooned. Acquisition is working; activation/retention is the bottleneck.',
- [{title:'Active merchants vs cumulative sign-ups (group)',cap:'Cumulative onboarded (incl. starting base) vs monthly active.',cfg:{type:'line',data:{labels:m.dates,datasets:[{label:'Cumulative sign-ups',data:cum,borderColor:PAL.blue,backgroundColor:PAL.blue,pointRadius:0,borderWidth:1.8,tension:.2},{label:'Total active merchants',data:active,borderColor:PAL.red,backgroundColor:PAL.red,pointRadius:0,borderWidth:1.8,tension:.2}]},options:{scales:{x:{ticks:{maxTicksLimit:8,font:{size:8}},grid:{display:false}}},plugins:{legend:{position:'bottom'}}}}},
+ feat('GTM spend on commissions and marketing has risen sharply over the past ~12 months, but it has converted into <b>sign-ups, not active merchants</b>: ~163.6k merchants onboarded across all markets since Jan-2024, yet the active base only moved from ~13k to ~27k. Activation is climbing (4.7%→13.6% of each year\'s sign-ups), but remains the bottleneck — acquisition is working, retention/activation is not keeping pace.',
+ [{title:'Active merchants vs cumulative sign-ups (group)',cap:'Cumulative new sign-ups (go-lives, all markets) vs monthly active. Ends at 163,627.',cfg:{type:'line',data:{labels:m.dates,datasets:[{label:'Cumulative sign-ups',data:cum,borderColor:PAL.blue,backgroundColor:PAL.blue,pointRadius:0,borderWidth:1.8,tension:.2},{label:'Total active merchants',data:active,borderColor:PAL.red,backgroundColor:PAL.red,pointRadius:0,borderWidth:1.8,tension:.2}]},options:{scales:{x:{ticks:{maxTicksLimit:8,font:{size:8}},grid:{display:false}}},plugins:{legend:{position:'bottom'}}}}},
   {title:'GTM spend over time ($, group)',cap:'Marketing + partner commissions, all markets.',cfg:{type:'bar',data:{labels:m.dates,datasets:[{label:'Marketing',data:mkt.map(v=>Math.round(v)),backgroundColor:PAL.blue},{label:'Commissions',data:com.map(v=>Math.round(v)),backgroundColor:PAL.amber}]},options:{scales:{x:{stacked:true,ticks:{maxTicksLimit:8,font:{size:8}},grid:{display:false}},y:{stacked:true,ticks:{callback:v=>'$'+(v/1000)+'k'}}},plugins:{legend:{position:'bottom'}}}}}]); })();
 
 // F5 · top-20 PIV vs gross revenue (two charts, same order)
@@ -132,6 +142,18 @@ function renderMix(country,cap){ const c=DATA.channel_country[country]; if(!c||!
  const ds=yrs.map((y,i)=>({label:'FY'+y+' NI ($m)',data:order.map(m=> a[m].ni[y]!==undefined? +(a[m].ni[y]/1e6).toFixed(2):null),backgroundColor:[PAL.blue,PAL.red][i]}));
  feat('While net positive on an EBITDA basis, the audited financials show the company is <b>still not profitable on a net-income basis</b>, with Kenyan burn increasing 2024→2025. Nonetheless, Nigerian net income has improved markedly (≈ −$19m → −$3m).',
  [{title:'Net income by market ($m, audited)',cap:'Statutory net income, converted to USD (approx).',cfg:{type:'bar',data:{labels:order,datasets:ds},options:{scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>'$'+v+'m'}}},plugins:{legend:{position:'bottom'}}}}}]); })();
+
+// activation-rate table (group, by sign-up year)
+(()=>{ const m=DATA.merchants; const dates=m.dates; const markets=['Nigeria','South Africa','Ghana','Kenya']; const n=dates.length;
+ const gl=z(n),ac=z(n);
+ markets.forEach(c=>{S(m.country[c].golives).forEach((v,i)=>gl[i]+=v);S(m.country[c].active).forEach((v,i)=>ac[i]+=v);});
+ const years=['2024','2025','2026']; let rows=''; let tS=0,tA=0; let prevEnd=null;
+ years.forEach(y=>{ const idx=[]; for(let i=0;i<n;i++) if(dates[i].slice(0,4)===y) idx.push(i); if(!idx.length)return;
+   const su=idx.reduce((s,i)=>s+gl[i],0); const aEnd=ac[idx[idx.length-1]]; const aStart=ac[idx[0]];
+   const net=(prevEnd===null)?(aEnd-aStart):(aEnd-prevEnd); prevEnd=aEnd; tS+=su; tA+=net; const rate=su?(100*net/su):0;
+   rows+='<tr><td>'+y+(y==='2026'?' (Jan–May)':'')+'</td><td>'+su.toLocaleString()+'</td><td>'+net.toLocaleString()+'</td><td>'+rate.toFixed(2)+'%</td></tr>'; });
+ rows+='<tr class="tot"><td>Total</td><td>'+tS.toLocaleString()+'</td><td>'+tA.toLocaleString()+'</td><td>'+(100*tA/tS).toFixed(2)+'%</td></tr>';
+ document.getElementById('acttable').innerHTML='<div class="atbl"><h3>Merchant activation by sign-up year (group)</h3><table><thead><tr><th>Year</th><th>Sign-ups</th><th>New active merchants</th><th>Activation rate</th></tr></thead><tbody>'+rows+'</tbody></table><div class="note">Sign-ups = new go-lives across Nigeria, South Africa, Ghana &amp; Kenya (cumulative 163,627 — matches the chart above). New active = net change in monthly active base over the year. Activation rate = new active ÷ sign-ups. Source: Q9 Monthly active &amp; new merchants.</div></div>'; })();
 
 /* ===== SECTION 1: channel mix per country + take rates ===== */
 renderMix('Nigeria','DVAs (near-zero margin) have grown to ~40% of Nigerian volume, displacing cards.');
